@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X Feed Simulator — Understand your algorithm score</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-x">𝕏</div>
+    <span class="logo-text">Feed Simulator</span>
+    <span class="logo-sub">/ algorithm explorer</span>
+  </div>
+  <a href="https://github.com/xai-org/x-algorithm" target="_blank" rel="noopener noreferrer" class="header-badge">open source · xai-org/x-algorithm</a>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+    <div>
+      <div class="section-label">Post context</div>
+      <div class="control-group">
+        <div class="field">
+          <label class="field-label">Post type</label>
+          <select id="post-type" onchange="recalc()">
+            <option value="original">Original post</option>
+            <option value="reply">Reply</option>
+            <option value="repost">Repost</option>
+            <option value="quote">Quote post</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Media format</label>
+          <select id="media-type" onchange="recalc()">
+            <option value="text">Text only</option>
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Post age</label>
+          <select id="post-age" onchange="recalc()">
+            <option value="fresh">Fresh — under 2 hours</option>
+            <option value="recent">Recent — 2 to 12 hours</option>
+            <option value="old">Older — 12 to 48 hours</option>
+            <option value="stale">Stale — over 48 hours</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Audience relationship</label>
+          <select id="audience" onchange="recalc()">
+            <option value="follower">Followers (in-network)</option>
+            <option value="oon">Non-followers (out-of-network)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Author signals</div>
+      <div class="control-group">
+        <div class="slider-field">
+          <div class="slider-header">
+            <span class="slider-name">Engagement rate</span>
+            <span class="slider-value" id="v-engrate">4.0%</span>
+          </div>
+          <input type="range" min="0" max="100" step="1" value="33" id="s-engrate" oninput="recalc()">
+        </div>
+        <div class="slider-field">
+          <div class="slider-header">
+            <span class="slider-name">Follower count</span>
+            <span class="slider-value" id="v-followers">3k</span>
+          </div>
+          <input type="range" min="0" max="100" step="1" value="30" id="s-followers" oninput="recalc()">
+        </div>
+        <div class="slider-field">
+          <div class="slider-header">
+            <span class="slider-name">Posting frequency</span>
+            <span class="slider-value" id="v-freq">2/day</span>
+          </div>
+          <input type="range" min="0" max="100" step="1" value="40" id="s-freq" oninput="recalc()">
+        </div>
+        <div class="slider-field">
+          <div class="slider-header">
+            <span class="slider-name">Block/mute rate</span>
+            <span class="slider-value" id="v-blocks">Low</span>
+          </div>
+          <input type="range" min="0" max="100" step="1" value="10" id="s-blocks" oninput="recalc()">
+        </div>
+        <div class="slider-field">
+          <div class="slider-header">
+            <span class="slider-name">Reply/quote ratio</span>
+            <span class="slider-value" id="v-replies">30%</span>
+          </div>
+          <input type="range" min="0" max="100" step="1" value="30" id="s-replies" oninput="recalc()">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Viewer context</div>
+      <div class="control-group">
+        <div class="slider-field">
+          <div class="slider-header">
+            <span class="slider-name">Topic affinity match</span>
+            <span class="slider-value" id="v-affinity">60%</span>
+          </div>
+          <input type="range" min="0" max="100" step="1" value="60" id="s-affinity" oninput="recalc()">
+        </div>
+        <div class="slider-field">
+          <div class="slider-header">
+            <span class="slider-name">Mutual engagement history</span>
+            <span class="slider-value" id="v-mutual">Med</span>
+          </div>
+          <input type="range" min="0" max="100" step="1" value="50" id="s-mutual" oninput="recalc()">
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="score-hero">
+      <div class="big-score">
+        <div class="big-score-num" id="big-score">—</div>
+        <div class="big-score-label">Phoenix score</div>
+      </div>
+      <div class="score-divider"></div>
+      <div class="score-stats">
+        <div class="stat-item">
+          <div class="stat-val" id="s-feedprob">—</div>
+          <div class="stat-label">Feed probability</div>
+        </div>
+        <div class="stat-item">
+          <div id="tier-badge" class="tier-badge" style="display:inline-flex">
+            <span class="tier-dot"></span>
+            <span id="tier-label">—</span>
+          </div>
+          <div class="stat-label" style="margin-top:6px">Reach tier</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="s-filters">—</div>
+          <div class="stat-label">Filters passed</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="s-rank">—</div>
+          <div class="stat-label">Est. ranking percentile</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('predictions', this)">Predictions</button>
+        <button class="tab-btn" onclick="switchTab('filters', this)">Filters</button>
+        <button class="tab-btn" onclick="switchTab('scoring', this)">Scoring breakdown</button>
+        <button class="tab-btn" onclick="switchTab('tips', this)">Tips</button>
+      </div>
+    </div>
+
+    <div id="tab-predictions" class="tab-panel active">
+      <div class="section-title">Phoenix transformer predictions</div>
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem;">
+        <canvas id="predictionChart" height="100"></canvas>
+      </div>
+
+      <div class="actions-grid" id="actions-grid"></div>
+    </div>
+
+    <div id="tab-filters" class="tab-panel">
+      <div class="section-title">Pre-scoring filters</div>
+      <div class="filters-grid" id="filters-grid"></div>
+      <div style="margin-top:1.5rem">
+        <div class="section-title">Post-selection filters</div>
+        <div class="filters-grid" id="filters-post-grid"></div>
+      </div>
+    </div>
+
+    <div id="tab-scoring" class="tab-panel">
+      <div class="section-title">How your score is built</div>
+      <div class="score-waterfall" id="waterfall"></div>
+    </div>
+
+    <div id="tab-tips" class="tab-panel">
+      <div class="section-title">Algorithm-backed improvements</div>
+      <div class="tips-list">
+        <div class="tip-card">
+          <div class="tip-icon">💬</div>
+          <div>
+            <div class="tip-title">Replies and quotes are the strongest positive signal</div>
+            <div class="tip-desc">The Phoenix weighted scorer assigns weight ×1.5 to replies and ×1.2 to quote posts — far above likes (×0.5). Content that sparks conversation is what the algorithm values most.</div>
+          </div>
+          <div class="tip-impact impact-high">HIGH</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">🚫</div>
+          <div>
+            <div class="tip-title">Blocks and reports carry extreme negative weight</div>
+            <div class="tip-desc">P(block) has weight −3.0, P(report) has weight −4.0. A handful of blocks can negate dozens of likes. Provocative content that triggers blocking will suppress your overall author score over time.</div>
+          </div>
+          <div class="tip-impact impact-neg">CRITICAL</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">⏱️</div>
+          <div>
+            <div class="tip-title">Post age is a hard filter, not just a penalty</div>
+            <div class="tip-desc">Thunder trims posts past the retention window entirely — they never enter the candidate pool. Posts older than ~48h rarely compete. Timing your posts when your audience is active is non-negotiable.</div>
+          </div>
+          <div class="tip-impact impact-high">HIGH</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">🎬</div>
+          <div>
+            <div class="tip-title">Video dwell time is a separate scored signal</div>
+            <div class="tip-desc">P(video_view) and P(dwell) are independent prediction targets. Videos that get watched fully generate compounding positive signals. Autoplay skips actively hurt your score.</div>
+          </div>
+          <div class="tip-impact impact-med">MED</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">📉</div>
+          <div>
+            <div class="tip-title">Posting too frequently cannibalizes your own reach</div>
+            <div class="tip-desc">The author diversity scorer attenuates repeated-author candidates. If you post 20 times a day, your posts compete with each other for the single author slot per viewer feed. Quality beats quantity.</div>
+          </div>
+          <div class="tip-impact impact-med">MED</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">🌐</div>
+          <div>
+            <div class="tip-title">Discovery reach requires embedding consistency</div>
+            <div class="tip-desc">To appear in non-followers' feeds, your post's embedding (Phoenix two-tower model) must match what those users have engaged with before. Niche-consistent posting over time builds a stronger, more discoverable embedding than posting about everything.</div>
+          </div>
+          <div class="tip-impact impact-high">HIGH</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">👀</div>
+          <div>
+            <div class="tip-title">Previously seen posts are filtered out entirely</div>
+            <div class="tip-desc">The PreviouslySeenPostsFilter and PreviouslyServedPostsFilter remove posts a viewer has already encountered. Viral spread depends entirely on reaching new viewers — the algorithm doesn't recirculate.</div>
+          </div>
+          <div class="tip-impact impact-med">MED</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">🤖</div>
+          <div>
+            <div class="tip-title">No shortcuts — the model learns from engagement sequences</div>
+            <div class="tip-desc">xAI explicitly removed all hand-engineered features. Verified status, follower count, and paid tiers provide no direct scoring boost. Only your historical engagement pattern, as understood by the Grok transformer, drives your score.</div>
+          </div>
+          <div class="tip-impact impact-high">HIGH</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <a href="https://github.com/xai-org/x-algorithm">xai-org/x-algorithm</a>
+</footer>
+<script src="script.js"></script>
+</body>
+</html>
