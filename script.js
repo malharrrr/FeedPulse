@@ -81,36 +81,93 @@ function getProbs(){
   const age      = document.getElementById('post-age').value;
   const audience = document.getElementById('audience').value;
 
+  const draftInput = document.getElementById('draft-input');
+  const text = draftInput ? draftInput.value : '';
+  const len = text.length;
+  const hashtags = (text.match(/#[\w]+/g) || []).length;
+  const hasLink = /https?:\/\/[^\s]+/g.test(text);
+  const lineBreaks = (text.match(/\n/g) || []).length;
+
+  let draftBoost = 0;
+  let draftPenalty = 0;
+
+  if (text.length > 0) {
+    if (len > 280) draftPenalty += 0.15; 
+    if (hashtags > 3) draftPenalty += 0.25; 
+    if (hasLink) draftPenalty += 0.40; p
+    if (lineBreaks >= 2 && len > 60) draftBoost += 0.20;
+  }
   const ageMult   = {fresh:1.0, recent:0.78, old:0.38, stale:0.05}[age];
   const mediaMult = {text:1.0, image:1.15, video:1.25}[media];
   const typeMult  = {original:1.0, quote:1.08, reply:0.82, repost:0.68}[postType];
   const freqPenalty = freq > 0.55 ? (freq-0.55)*0.9 : 0;
   const oonPenalty  = audience === 'oon' ? 0.6 : 1.0;
 
-  const base = (engRate*0.6 + affinity*0.25 + mutual*0.15) * ageMult * mediaMult * typeMult * oonPenalty - freqPenalty*0.15;
+  const base = ((engRate*0.6 + affinity*0.25 + mutual*0.15) * ageMult * mediaMult * typeMult * oonPenalty) - freqPenalty*0.15 + draftBoost - (draftPenalty * 0.5);
 
   return ACTIONS.map(a => {
     let p;
     if(a.dir===1){
       const boost = {
         reply: 1.4 + replies*0.8,
-        quote: 1.2 + replies*0.4,
-        follow: 0.5 + engRate*0.6,
         video_view: media==='video' ? 1.8 : 0.15,
-        dwell: media==='video' ? 1.3 : 0.9,
-        favorite: 1.0,
-        repost: 0.9,
-        click: 0.8,
-        share: 0.9,
+        quote: 1.1 + replies*0.4
       }[a.key] || 1;
-      p = sigmoid(-3.5 + base*7*boost);
+      p = sigmoid(-3.5 + base*7*boost); 
     } else {
-      const negBase = blocks*0.75 + (freq>0.65 ? (freq-0.65)*0.4 : 0) + (oonPenalty<1?0.1:0);
-      p = sigmoid(-6 + negBase*9);
+      const negBase = blocks*0.75 + (freq>0.65 ? (freq-0.65)*0.4 : 0) + (oonPenalty<1?0.1:0) + (draftPenalty * 0.8);
+      p = sigmoid(-6 + negBase*9); 
     }
     return {...a, prob: Math.min(0.99, Math.max(0.001, p))};
   });
 }
+function analyzeDraft() {
+  const draftInput = document.getElementById('draft-input');
+  if (!draftInput) return;
+  
+  const text = draftInput.value;
+  const warningsContainer = document.getElementById('draft-warnings');
+  const charCountBadge = document.getElementById('char-count');
+  warningsContainer.innerHTML = ''; 
+  
+  function addWarning(type, msg, icon) {
+    const span = document.createElement('span');
+    span.className = `warning-tag ${type}`;
+    span.innerHTML = `<strong>${icon}</strong> ${msg}`;
+    warningsContainer.appendChild(span);
+  }
+
+  const len = text.length;
+  charCountBadge.textContent = `${len}/280`;
+  
+  if (len > 280) {
+    charCountBadge.classList.add('over-limit');
+    addWarning('danger', 'Over 280 chars: Heavy friction penalty applied.', '⚠️');
+  } else {
+    charCountBadge.classList.remove('over-limit');
+  }
+
+  if (len === 0) {
+    recalc();
+    return; 
+  }
+  const hashtags = (text.match(/#[\w]+/g) || []).length;
+  if (hashtags > 3) {
+    addWarning('danger', `Spam Risk: ${hashtags} hashtags detected. Penalty applied.`, '🛑');
+  } else if (hashtags > 0 && hashtags <= 3) {
+    addWarning('success', 'Topic anchored. Good for discovery embedding.', '🎯');
+  }
+  const hasLink = /https?:\/\/[^\s]+/g.test(text);
+  if (hasLink) {
+    addWarning('danger', 'External URL detected: Heavy discovery penalty applied.', '🔗');
+  }
+  const lineBreaks = (text.match(/\n/g) || []).length;
+  if (lineBreaks >= 2 && len > 60) {
+    addWarning('success', 'Clean spacing: Dwell-time multiplier boosted.', '⏱️');
+  }
+  recalc();
+}
+document.getElementById('draft-input').addEventListener('input', analyzeDraft);
 
 function computeScore(probs){
   return probs.reduce((s,a)=>s+a.weight*a.prob, 0);

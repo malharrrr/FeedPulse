@@ -63,7 +63,6 @@
         </div>
       </div>
     </div>
-
     <div>
       <div class="section-label">Author signals</div>
       <div class="control-group">
@@ -162,9 +161,10 @@
         <button class="tab-btn" onclick="switchTab('filters', this)">Filters</button>
         <button class="tab-btn" onclick="switchTab('scoring', this)">Scoring breakdown</button>
         <button class="tab-btn" onclick="switchTab('tips', this)">Tips</button>
+        <button class="tab-btn" onclick="switchTab('analyzer', this)">Draft Analyzer</button>
       </div>
     </div>
-
+    
     <div id="tab-predictions" class="tab-panel active">
       <div class="section-title">Phoenix transformer predictions</div>
       <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem;">
@@ -257,6 +257,19 @@
         </div>
       </div>
     </div>
+    
+    <div id="tab-analyzer" class="tab-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <div class="section-title" style="margin-bottom: 0;">Optimize Your Post</div>
+        <span id="char-count" class="analyzer-badge">0/280</span>
+      </div>
+      <p class="analyzer-desc">Paste your draft below. The simulation will auto-adjust your algorithm signals in real-time based on formatting, links, and hashtags.</p>
+      
+      <textarea id="draft-input" placeholder="Start typing or paste your tweet draft here..."></textarea>
+      
+      <div id="draft-warnings" class="warnings-grid"></div> 
+    </div>
+    
   </main>
 </div>
 
